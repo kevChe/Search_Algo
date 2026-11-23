@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shortest-Path Practice: Dijkstra &amp; A*</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Shortest-path practice</h1>
+    <div class="tabs" role="tablist" aria-label="Algorithm">
+      <button role="tab" id="tab-dijkstra" data-algo="dijkstra">Dijkstra's algorithm</button>
+      <button role="tab" id="tab-astar" data-algo="astar">A* algorithm</button>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <button id="btnNew" type="button">New random graph</button>
+    <button id="btnReveal" type="button" class="secondary">Show answer</button>
+    <form id="seedForm" class="seedform">
+      <label for="seedInput">Seed</label>
+      <input id="seedInput" type="text" inputmode="numeric" size="7" autocomplete="off">
+      <button type="submit" class="secondary">Load</button>
+    </form>
+    <span class="mistakes">Mistakes: <strong id="mistakes">0</strong></span>
+  </div>
+
+  <main>
+    <section class="left" aria-label="Graph">
+      <p id="question" class="question"></p>
+      <svg id="graph" role="group" aria-label="Graph"></svg>
+      <ul class="legend" id="legend"></ul>
+    </section>
+
+    <section class="right" aria-label="Working">
+      <div id="task" class="card"></div>
+      <div id="feedback" class="feedback" role="status" aria-live="polite"></div>
+      <div id="tableWrap" class="card"></div>
+    </section>
+  </main>
+
+  <script src="logic.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

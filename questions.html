@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Past-paper style questions: Dijkstra &amp; A*</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Past-paper style questions</h1>
+    <p class="sub"><a href="index.html">&larr; Random graph practice</a></p>
+    <div class="tabs" id="qtabs" role="tablist" aria-label="Question"></div>
+  </header>
+
+  <div class="toolbar">
+    <button id="btnReveal" type="button" class="secondary">Show answer</button>
+    <span class="mistakes">Mistakes: <strong id="mistakes">0</strong></span>
+  </div>
+
+  <main>
+    <section class="left" aria-label="Graph">
+      <p id="question" class="question"></p>
+      <svg id="graph" role="group" aria-label="Graph"></svg>
+      <ul class="legend" id="legend"></ul>
+    </section>
+
+    <section class="right" aria-label="Working">
+      <div id="task" class="card"></div>
+      <div id="feedback" class="feedback" role="status" aria-live="polite"></div>
+      <div id="tableWrap" class="card"></div>
+    </section>
+  </main>
+
+  <script src="logic.js"></script>
+  <script src="questions-data.js"></script>
+  <script src="questions.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

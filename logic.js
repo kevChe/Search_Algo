@@ -167,4 +167,16 @@ function generate(seed, algo) {
   throw new Error('Could not generate a graph for seed ' + seed);
 }
 
-if (typeof module !== 'undefined') module.exports = { generate, solve, SCALE };
+/** Shortest distance from the start node to EVERY node (what the Dijkstra exam question asks for). */
+function allDistances(graph) {
+  const d = { [graph.start]: 0 }, done = new Set();
+  for (;;) {
+    const open = Object.keys(d).filter(id => !done.has(id)).sort((p, q) => d[p] - d[q]);
+    if (!open.length) return d;
+    const u = open[0];
+    done.add(u);
+    for (const { to, w } of graph.adj[u]) if (d[to] === undefined || d[u] + w < d[to]) d[to] = d[u] + w;
+  }
+}
+
+if (typeof module !== 'undefined') module.exports = { generate, solve, allDistances, SCALE };

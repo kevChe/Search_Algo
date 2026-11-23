@@ -8,27 +8,35 @@ const $ = sel => document.querySelector(sel);
 // S.phase: 'choose' -> click next node | 'update' -> type neighbour values | 'path' -> trace path | 'cost' -> type cost | 'done'
 let S = null;
 const isAstar = () => S.algo === 'astar';
-const px = n => PAD + n.x * CELL;
-const py = n => PAD + n.y * CELL;
+// Random graphs sit on a grid; fixed past-paper questions give x, y directly in a 660 x 400 viewBox.
+const px = n => (S.fixed ? n.x : PAD + n.x * CELL);
+const py = n => (S.fixed ? n.y : PAD + n.y * CELL);
 const nodeById = id => S.graph.nodes.find(n => n.id === id);
 
 /* ---------- game setup ---------- */
 
-function newGame(algo, seed) {
-  const { graph, sol } = generate(seed, algo);
-  S = { algo, seed, graph, sol, phase: 'choose', idx: -1, done: new Set(), work: {}, prev: {}, order: {},
+/** `fixed` (optional) = { graph, sol, num, text } for a past-paper style question (see questions.js). */
+function newGame(algo, seed, fixed) {
+  const { graph, sol } = fixed || generate(seed, algo);
+  algo = graph.algo;
+  S = { algo, seed, graph, sol, fixed: !!fixed, num: fixed ? fixed.num : 0, phase: 'choose', idx: -1, done: new Set(), work: {}, prev: {}, order: {},
         mistakes: 0, trace: [], revealed: false };
   finalise(0);                                   // the start node is finalised automatically
-  history.replaceState(null, '', `?algo=${algo}&seed=${seed}`);
-  $('#seedInput').value = seed;
+  history.replaceState(null, '', fixed ? `?q=${fixed.num}` : `?algo=${algo}&seed=${seed}`);
+  if ($('#seedInput')) $('#seedInput').value = seed;
   $('#btnReveal').disabled = false;
-  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.algo === algo));
-  const goal = graph.goal;
-  $('#question').textContent = isAstar()
-    ? `The graph shows the cost of travelling between points. The number beside each node (h) is an estimate of the cost from that node to ${goal}. Use the A* algorithm (f = g + h) to find the shortest path from A to ${goal}.`
-    : `The graph shows the distances between points. Use Dijkstra's algorithm to find the shortest path from A to ${goal}.`;
+  document.querySelectorAll('.tabs button').forEach(b =>
+    b.setAttribute('aria-selected', fixed ? Number(b.dataset.q) === fixed.num : b.dataset.algo === algo));
+  const goal = graph.goal, start = graph.start;
+  $('#question').textContent = fixed
+    ? fixed.text + (isAstar()
+        ? ` The number beside each node (h) is an estimate of the cost from that node to ${goal}. Click on the graph to work through the algorithm, then trace the best path from ${start} to ${goal}.`
+        : ` Click on the graph to work through the algorithm until ${goal}, the furthest node, is finalised, then trace the shortest path from ${start} to ${goal}. The working table gives the shortest distance to every node.`)
+    : isAstar()
+    ? `The graph shows the cost of travelling between points. The number beside each node (h) is an estimate of the cost from that node to ${goal}. Use the A* algorithm (f = g + h) to find the shortest path from ${start} to ${goal}.`
+    : `The graph shows the distances between points. Use Dijkstra's algorithm to find the shortest path from ${start} to ${goal}.`;
   $('#legend').innerHTML = '<li><i></i>not reached</li><li><i class="w"></i>has a working value</li><li><i class="f"></i>finalised</li><li><i class="g"></i>goal</li>';
-  setFeedback('info', 'Node A is finalised to start with. Fill in the values for its neighbours.');
+  setFeedback('info', `Node ${start} is finalised to start with. Fill in the values for its neighbours.`);
   render();
 }
 
@@ -224,7 +232,7 @@ function renderGraph() {
   const el = $('#graph');
   el.textContent = '';
   const gr = S.graph;
-  el.setAttribute('viewBox', `0 0 ${(4) * CELL + 2 * PAD} ${(3) * CELL + 2 * PAD}`);
+  el.setAttribute('viewBox', S.fixed ? '0 0 660 400' : `0 0 ${(4) * CELL + 2 * PAD} ${(3) * CELL + 2 * PAD}`);
   const onPathEdge = (a, b) => {
     for (let i = 1; i < S.trace.length; i++) {
       const p = S.trace[i - 1], q = S.trace[i];
@@ -253,7 +261,7 @@ function renderGraph() {
       'aria-label': `Node ${n.id}` + (w ? `, ${S.done.has(n.id) ? 'finalised' : 'working'} ${isAstar() ? 'g ' + w.g + ' f ' + w.f : w.g}` : ', not reached') });
     if (n.id === gr.goal) g.appendChild(svg('circle', { class: 'goalring', cx: px(n), cy: py(n), r: R + 6 }));
     g.appendChild(svg('circle', { class: 'body', cx: px(n), cy: py(n), r: R }));
-    g.appendChild(svg('text', { class: 'nlabel', x: px(n), y: py(n) }, n.id));
+    g.appendChild(svg('text', { class: 'nlabel' + (n.id.length > 4 ? ' tiny' : n.id.length > 2 ? ' small' : ''), x: px(n), y: py(n) }, n.id));
     if (w) badge(g, px(n), py(n) - R - 16, isAstar() ? `g=${w.g} f=${w.f}` : String(w.g), S.done.has(n.id) ? 'final' : 'working');
     if (isAstar()) g.appendChild(svg('text', { class: 'hlabel', x: px(n), y: py(n) + R + 18 }, `h=${n.h}`));
     g.addEventListener('click', () => onNodeClick(n.id));
@@ -310,7 +318,7 @@ function renderTask() {
     if (first) setTimeout(() => first.focus(), 0);
   } else if (S.phase === 'path') {
     title('Goal reached: trace the shortest path');
-    para(`Starting from ${S.graph.goal}, click the node it was reached from, and keep going back until you reach A.`);
+    para(`Starting from ${S.graph.goal}, click the node it was reached from, and keep going back until you reach ${S.graph.start}.`);
     para('Path so far: ' + [...S.trace].reverse().join(' → '));
   } else if (S.phase === 'cost') {
     title('Total cost');
@@ -366,10 +374,13 @@ function render() {
 const randomSeed = () => 1 + Math.floor(Math.random() * 99999);
 
 document.querySelectorAll('.tabs button').forEach(b =>
-  b.addEventListener('click', () => { if (b.dataset.algo !== S.algo) newGame(b.dataset.algo, S.seed); }));
-$('#btnNew').addEventListener('click', () => newGame(S.algo, randomSeed()));
+  b.addEventListener('click', () => {
+    if (b.dataset.q) { if (Number(b.dataset.q) !== S.num) newGame(null, null, fixedGame(Number(b.dataset.q) - 1)); }
+    else if (b.dataset.algo !== S.algo) newGame(b.dataset.algo, S.seed);
+  }));
+$('#btnNew')?.addEventListener('click', () => newGame(S.algo, randomSeed()));
 $('#btnReveal').addEventListener('click', reveal);
-$('#seedForm').addEventListener('submit', ev => {
+$('#seedForm')?.addEventListener('submit', ev => {
   ev.preventDefault();
   const v = parseNum($('#seedInput').value);
   if (v === null) { setFeedback('bad', 'The seed must be a whole number.'); return; }
@@ -378,6 +389,11 @@ $('#seedForm').addEventListener('submit', ev => {
 
 (function init() {
   const p = new URLSearchParams(location.search);
+  if (typeof QUESTIONS !== 'undefined') {                      // questions.html: the fixed past-paper style questions
+    const n = parseInt(p.get('q'), 10);
+    newGame(null, null, fixedGame(n >= 1 && n <= QUESTIONS.length ? n - 1 : 0));
+    return;
+  }
   const algo = p.get('algo') === 'astar' ? 'astar' : 'dijkstra';
   const seed = parseNum(p.get('seed') || '') ?? 2438;
   newGame(algo, seed);
